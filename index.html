@@ -38,12 +38,23 @@
         .suggestion-box {
             animation: fadeIn 0.3s ease-out;
         }
+        /* Modal Map */
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-content {
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal.open .modal-content {
+            transform: scale(1);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <!-- Header -->
-    
+   
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 flex-grow">
@@ -125,6 +136,40 @@
         </div>
 
     </main>
+
+    <!-- Map Modal -->
+    <div id="mapModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-[60] hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col modal-content overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 bg-red-700 text-white flex justify-between items-center shadow-md">
+                <div class="flex items-center">
+                    <i class="fas fa-map-marked-alt mr-3 text-xl"></i>
+                    <div>
+                        <h3 class="font-bold text-lg">Bản đồ địa điểm</h3>
+                        <p id="mapTitle" class="text-xs text-red-200">Đang tải...</p>
+                    </div>
+                </div>
+                <button onclick="closeMap()" class="text-white hover:text-red-200 text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-600 transition-colors">
+                    &times;
+                </button>
+            </div>
+            
+            <!-- Map Frame -->
+            <div class="flex-grow relative bg-gray-100">
+                <div id="mapLoading" class="absolute inset-0 flex items-center justify-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> Đang tải bản đồ Google Maps...
+                </div>
+                <iframe id="mapFrame" class="absolute inset-0 w-full h-full z-10" frameborder="0" style="border:0;" allowfullscreen="" loading="lazy" onload="document.getElementById('mapLoading').style.display='none'"></iframe>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="p-3 bg-gray-50 text-right border-t border-gray-200">
+                <button onclick="closeMap()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium transition-colors">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
@@ -326,6 +371,44 @@
             return str;
         }
 
+        // Map Functions
+        function openMap(name, district) {
+            const modal = document.getElementById('mapModal');
+            const frame = document.getElementById('mapFrame');
+            const title = document.getElementById('mapTitle');
+            const loading = document.getElementById('mapLoading');
+            
+            // Construct search query: Tên + Quận + Hà Nội
+            const query = `${name}, ${district}, Hà Nội`;
+            const src = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
+            
+            title.textContent = `Vị trí: ${query}`;
+            loading.style.display = 'flex'; // Reset loading state
+            frame.src = src;
+            
+            modal.classList.remove('hidden');
+            // Small delay to allow display flex to apply before opacity transition
+            setTimeout(() => {
+                modal.classList.add('open');
+            }, 10);
+        }
+
+        function closeMap() {
+            const modal = document.getElementById('mapModal');
+            modal.classList.remove('open');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('mapFrame').src = ''; // Stop loading to save memory
+            }, 300); // Wait for transition
+        }
+
+        // Close map when clicking outside content
+        document.getElementById('mapModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeMap();
+            }
+        });
+
         // Hàm render thẻ
         function renderCard(item) {
             let tagsHtml = '';
@@ -352,9 +435,13 @@
                     <div>
                         <div class="border-t border-gray-100 pt-3 mt-1">
                             <p class="text-xs text-gray-500 mb-2">Mô hình đề xuất:</p>
-                            <div class="flex flex-wrap">
+                            <div class="flex flex-wrap mb-3">
                                 ${tagsHtml}
                             </div>
+                            <button onclick="openMap('${item.name.replace(/'/g, "\\'")}', '${item.district}')" 
+                                class="w-full py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-md text-sm font-medium transition-colors flex items-center justify-center group">
+                                <i class="fas fa-map-marked-alt mr-2 group-hover:scale-110 transition-transform"></i> Xem vị trí
+                            </button>
                         </div>
                     </div>
                 </div>
