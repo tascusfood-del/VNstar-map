@@ -30,6 +30,14 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
+        /* Animation cho phần gợi ý */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .suggestion-box {
+            animation: fadeIn 0.3s ease-out;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -93,11 +101,27 @@
             
             <div class="mt-4 flex justify-between items-end">
                 <div class="text-sm text-gray-500">
-                    Tìm thấy <span id="resultCount" class="font-bold text-red-900">0</span> địa điểm
+                    <span id="statusText">Tìm thấy <span id="resultCount" class="font-bold text-red-900">0</span> địa điểm</span>
                 </div>
                 <button onclick="resetFilters()" class="text-sm text-red-600 hover:text-red-800 underline">
                     Đặt lại bộ lọc
                 </button>
+            </div>
+        </div>
+
+        <!-- Suggestion Alert -->
+        <div id="suggestionAlert" class="hidden mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r shadow-sm suggestion-box">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-yellow-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        Không tìm thấy kết quả chính xác cho từ khóa của bạn.
+                        <br>
+                        Dưới đây là các địa điểm <strong>gần đúng</strong> hoặc <strong>có liên quan</strong>:
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -112,7 +136,7 @@
                 <i class="fas fa-search-location text-6xl"></i>
             </div>
             <h3 class="text-xl font-medium text-gray-600">Không tìm thấy địa điểm nào</h3>
-            <p class="text-gray-500 mt-2">Hãy thử thay đổi từ khóa hoặc bộ lọc của bạn.</p>
+            <p class="text-gray-500 mt-2">Hãy thử thay đổi từ khóa hoặc mở rộng khu vực tìm kiếm.</p>
         </div>
 
     </main>
@@ -162,7 +186,7 @@
             { district: "Cầu Giấy", name: "Yên Hòa", small: true, station: true, flagship: false },
             { district: "Cầu Giấy", name: "Trung Hòa", small: false, station: true, flagship: false },
             { district: "Cầu Giấy", name: "Trần Quốc Vượng", small: false, station: true, flagship: false },
-            { district: "Cầu Giấy", name: "Duy Tân", small: true, station: false, flagship: false }, // Suy luận từ text vỡ
+            { district: "Cầu Giấy", name: "Duy Tân", small: true, station: false, flagship: false },
             { district: "Cầu Giấy", name: "Nguyễn Khánh Toàn", small: false, station: true, flagship: true },
             { district: "Cầu Giấy", name: "Hoàng Đạo Thúy", small: true, station: true, flagship: true },
             { district: "Cầu Giấy", name: "Đỗ Quang", small: true, station: false, flagship: false },
@@ -194,7 +218,7 @@
             { district: "Tây Hồ", name: "Võ Chí Công (trong)", small: true, station: true, flagship: false },
             { district: "Tây Hồ", name: "Âu Cơ (đoạn dân cư)", small: true, station: true, flagship: false },
             { district: "Tây Hồ", name: "Xuân La", small: true, station: true, flagship: true },
-            { district: "Tây Hồ", name: "Xuân Đỉnh (Tây Hồ)", small: true, station: false, flagship: false }, // Tách từ nhóm
+            { district: "Tây Hồ", name: "Xuân Đỉnh (Tây Hồ)", small: true, station: false, flagship: false },
             { district: "Tây Hồ", name: "Yên Phụ Nhỏ", small: true, station: false, flagship: false },
             { district: "Tây Hồ", name: "Nguyễn Hoàng Tôn", small: true, station: false, flagship: false },
             { district: "Tây Hồ", name: "Ciputra", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
@@ -273,7 +297,9 @@
         const modelSelect = document.getElementById('modelFilter');
         const searchInput = document.getElementById('searchInput');
         const resultCount = document.getElementById('resultCount');
+        const statusText = document.getElementById('statusText');
         const noResults = document.getElementById('noResults');
+        const suggestionAlert = document.getElementById('suggestionAlert');
 
         // Lấy danh sách quận duy nhất để đưa vào select
         const uniqueDistricts = [...new Set(locations.map(item => item.district))].sort();
@@ -284,10 +310,40 @@
             districtSelect.appendChild(option);
         });
 
+        // Hàm tính khoảng cách Levenshtein để so sánh độ tương đồng của chuỗi
+        function levenshtein(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        // Hàm xoá dấu tiếng Việt để so sánh dễ hơn
+        function removeVietnameseTones(str) {
+            str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
+            str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
+            str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
+            str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o"); 
+            str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u"); 
+            str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y"); 
+            str = str.replace(/đ/g,"d");
+            return str;
+        }
+
         // Hàm render thẻ
         function renderCard(item) {
             let tagsHtml = '';
-            
             if (item.small) tagsHtml += `<span class="model-tag tag-small">Small Store</span>`;
             if (item.station) tagsHtml += `<span class="model-tag tag-station">Station</span>`;
             if (item.flagship) tagsHtml += `<span class="model-tag tag-flagship">Flagship</span>`;
@@ -322,36 +378,80 @@
 
         // Hàm lọc và hiển thị
         function filterAndRender() {
-            const searchText = searchInput.value.toLowerCase();
+            let searchText = searchInput.value.toLowerCase().trim();
             const selectedDistrict = districtSelect.value;
             const selectedModel = modelSelect.value;
-
-            const filteredData = locations.filter(item => {
-                // Filter Search
+            
+            // Xóa trạng thái cũ
+            suggestionAlert.classList.add('hidden');
+            
+            // Lọc chính xác (như cũ)
+            let filteredData = locations.filter(item => {
                 const matchSearch = item.name.toLowerCase().includes(searchText) || item.district.toLowerCase().includes(searchText);
-                
-                // Filter District
                 const matchDistrict = selectedDistrict === 'all' || item.district === selectedDistrict;
-
-                // Filter Model
                 let matchModel = true;
                 if (selectedModel === 'Small') matchModel = item.small;
                 if (selectedModel === 'Station') matchModel = item.station;
                 if (selectedModel === 'Flagship') matchModel = item.flagship;
-
                 return matchSearch && matchDistrict && matchModel;
             });
 
-            // Update DOM
-            grid.innerHTML = filteredData.map(renderCard).join('');
-            resultCount.textContent = filteredData.length;
+            // Nếu không tìm thấy kết quả chính xác VÀ có từ khóa tìm kiếm -> Tìm kiếm mờ (Fuzzy Search)
+            let isSuggestion = false;
+            if (filteredData.length === 0 && searchText.length > 0) {
+                const searchNoTone = removeVietnameseTones(searchText);
+                
+                filteredData = locations.filter(item => {
+                    const nameLower = item.name.toLowerCase();
+                    const nameNoTone = removeVietnameseTones(nameLower);
+                    
+                    // 1. Kiểm tra ngược: Tên đường có nằm TRONG từ khóa tìm kiếm không?
+                    // Ví dụ: Tìm "Số 5 Trần Huy Liệu" -> Chứa "Trần Huy Liệu" -> OK
+                    const containsReverse = searchText.includes(nameLower);
 
-            if (filteredData.length === 0) {
-                noResults.classList.remove('hidden');
-                grid.classList.add('hidden');
-            } else {
+                    // 2. Kiểm tra mờ: Độ sai lệch ký tự thấp (Levenshtein)
+                    // Chỉ áp dụng nếu từ khóa đủ dài (>3 ký tự)
+                    let fuzzyMatch = false;
+                    if (searchNoTone.length > 3) {
+                        const dist = levenshtein(searchNoTone, nameNoTone);
+                        // Cho phép sai số khoảng 20-30% độ dài chuỗi
+                        fuzzyMatch = dist <= Math.max(2, nameNoTone.length * 0.3); 
+                    }
+
+                    // Vẫn phải đảm bảo bộ lọc Quận và Model
+                    const matchDistrict = selectedDistrict === 'all' || item.district === selectedDistrict;
+                    let matchModel = true;
+                    if (selectedModel === 'Small') matchModel = item.small;
+                    if (selectedModel === 'Station') matchModel = item.station;
+                    if (selectedModel === 'Flagship') matchModel = item.flagship;
+
+                    return (containsReverse || fuzzyMatch) && matchDistrict && matchModel;
+                });
+
+                if (filteredData.length > 0) {
+                    isSuggestion = true;
+                }
+            }
+
+            // Cập nhật DOM
+            grid.innerHTML = filteredData.map(renderCard).join('');
+            
+            if (isSuggestion) {
+                suggestionAlert.classList.remove('hidden');
+                statusText.innerHTML = `Tìm thấy <span class="font-bold text-yellow-600">${filteredData.length}</span> gợi ý gần đúng`;
                 noResults.classList.add('hidden');
                 grid.classList.remove('hidden');
+            } else {
+                resultCount.textContent = filteredData.length;
+                statusText.innerHTML = `Tìm thấy <span id="resultCount" class="font-bold text-red-900">${filteredData.length}</span> địa điểm`;
+                
+                if (filteredData.length === 0) {
+                    noResults.classList.remove('hidden');
+                    grid.classList.add('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                    grid.classList.remove('hidden');
+                }
             }
         }
 
