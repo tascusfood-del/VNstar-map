@@ -3,90 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tra Cứu Mặt Bằng Dự Kiến - VNS</title>
+    <title>VNS Site Manager - Quản Lý Mặt Bằng</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
-        }
-        .model-tag {
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            display: inline-block;
-            margin-right: 0.25rem;
-            margin-bottom: 0.25rem;
-        }
-        .tag-small { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-        .tag-station { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .tag-flagship { background-color: #fce7f3; color: #9d174d; border: 1px solid #fbcfe8; }
-        .card {
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        /* Animation cho phần gợi ý */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .suggestion-box {
-            animation: fadeIn 0.3s ease-out;
-        }
-        /* Modal Map */
-        .modal {
-            transition: opacity 0.3s ease-in-out;
-        }
-        .modal-content {
-            transform: scale(0.95);
-            transition: transform 0.3s ease-in-out;
-        }
-        .modal.open .modal-content {
-            transform: scale(1);
-        }
+        body { font-family: 'Roboto', sans-serif; background-color: #f8fafc; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        .model-tag { font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-bottom: 4px; }
+        .tag-small { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .tag-station { background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .tag-flagship { background-color: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+        .card { transition: all 0.2s ease; border: 1px solid #e2e8f0; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #cbd5e1; }
+        .modal { opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal.open { opacity: 1; visibility: visible; }
+        .modal .modal-content { transform: scale(0.95); transition: all 0.3s ease; }
+        .modal.open .modal-content { transform: scale(1); }
+        .price-info { font-size: 0.8rem; border-top: 1px dashed #e2e8f0; margin-top: 8px; padding-top: 8px; }
+        .price-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .price-label { color: #64748b; }
+        .price-value { font-weight: 500; color: #334155; }
+        /* Loading Overlay */
+        #globalLoading { background: rgba(255,255,255,0.8); backdrop-filter: blur(2px); z-index: 100; }
+        /* Toast Notification */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 110; display: flex; flex-direction: column; gap: 10px; }
+        .toast { min-width: 250px; padding: 12px 16px; border-radius: 8px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease-out forwards; border-left: 4px solid #3b82f6; }
+        .toast.error { border-left-color: #ef4444; }
+        .toast.success { border-left-color: #22c55e; }
+        .toast.warning { border-left-color: #f59e0b; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col text-slate-800 relative">
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Global Loading -->
+    <div id="globalLoading" class="hidden fixed inset-0 flex items-center justify-center">
+        <div class="bg-white p-4 rounded-xl shadow-2xl flex flex-col items-center">
+            <i class="fas fa-circle-notch fa-spin text-3xl text-red-600 mb-2"></i>
+            <span class="text-sm font-medium text-slate-600" id="loadingText">Đang kết nối Cloud...</span>
+        </div>
+    </div>
 
     <!-- Header -->
-   
+    <header class="bg-gradient-to-r from-red-800 to-red-700 text-white shadow-lg sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                    <i class="fas fa-map-location-dot text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold uppercase tracking-wide leading-none">VNS Site Manager</h1>
+                    <span class="text-xs text-red-200 font-light flex items-center gap-1">
+                        <span id="connectionStatus" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                        <span id="connectionText">Đang tải...</span>
+                    </span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Admin Sync Button (Hidden by default) -->
+                <button id="adminSyncBtn" onclick="syncToCloud()" class="hidden text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors shadow-sm mr-2" title="Đẩy toàn bộ dữ liệu gốc lên Sheet (Chỉ dùng khi Sheet trống)">
+                    <i class="fas fa-cloud-upload-alt mr-1"></i> Đồng bộ Cloud (Admin)
+                </button>
+
+                <div id="userStatus" class="hidden md:flex items-center gap-2 text-sm bg-red-900/30 px-3 py-1 rounded-full border border-red-500/30">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="usernameDisplay">Khách</span>
+                </div>
+                <button id="loginBtn" onclick="toggleLoginModal()" class="text-sm bg-white text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-md font-medium transition-colors shadow-sm">
+                    Đăng nhập
+                </button>
+                <button id="logoutBtn" onclick="logout()" class="hidden text-sm bg-red-900 hover:bg-red-950 text-white px-3 py-1.5 rounded-md font-medium transition-colors border border-red-800">
+                    Thoát
+                </button>
+            </div>
+        </div>
+    </header>
 
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 flex-grow">
-        
-        <!-- Search & Filter Section -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- Search Box -->
-                <div class="col-span-1 md:col-span-2 relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm tuyến phố / Chung cư</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <i class="fas fa-search text-gray-400"></i>
-                        </span>
-                        <input type="text" id="searchInput" placeholder="Ví dụ: Kim Mã, Times City..." 
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+        <!-- Controls -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-5 relative">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Tìm kiếm</label>
+                    <div class="relative group">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-500 transition-colors"></i>
+                        <input type="text" id="searchInput" placeholder="Tên đường, chung cư..." 
+                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
                     </div>
                 </div>
-
-                <!-- Filter District -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Quận / Huyện</label>
-                    <select id="districtFilter" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 cursor-pointer">
-                        <option value="all">Tất cả khu vực</option>
-                        <!-- Options will be populated by JS -->
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Khu vực</label>
+                    <select id="districtFilter" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none cursor-pointer">
+                        <option value="all">Tất cả Quận/Huyện</option>
                     </select>
                 </div>
-
-                <!-- Filter Model -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mô hình phù hợp</label>
-                    <select id="modelFilter" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 cursor-pointer">
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Mô hình</label>
+                    <select id="modelFilter" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none cursor-pointer">
                         <option value="all">Tất cả mô hình</option>
                         <option value="Small">Small Store</option>
                         <option value="Station">Station</option>
@@ -94,253 +117,511 @@
                     </select>
                 </div>
             </div>
-            
-            <div class="mt-4 flex justify-between items-end">
-                <div class="text-sm text-gray-500">
-                    <span id="statusText">Tìm thấy <span id="resultCount" class="font-bold text-red-900">0</span> địa điểm</span>
-                </div>
-                <button onclick="resetFilters()" class="text-sm text-red-600 hover:text-red-800 underline">
-                    Đặt lại bộ lọc
+            <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
+                <span class="text-sm text-slate-500" id="statusText">Đang tải dữ liệu...</span>
+                <button onclick="resetFilters()" class="text-xs font-medium text-slate-500 hover:text-red-600 flex items-center gap-1 transition-colors">
+                    <i class="fas fa-undo"></i> Đặt lại bộ lọc
                 </button>
             </div>
         </div>
 
-        <!-- Suggestion Alert -->
-        <div id="suggestionAlert" class="hidden mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r shadow-sm suggestion-box">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-lightbulb text-yellow-400"></i>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-yellow-700">
-                        Không tìm thấy kết quả chính xác cho từ khóa của bạn.
-                        <br>
-                        Dưới đây là các địa điểm <strong>gần đúng</strong> hoặc <strong>có liên quan</strong>:
-                    </p>
-                </div>
+        <div id="suggestionAlert" class="hidden mb-6 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-start gap-3 shadow-sm">
+            <i class="fas fa-lightbulb mt-1 text-amber-500"></i>
+            <div>
+                <strong class="font-medium">Gợi ý tìm kiếm:</strong>
+                <p class="text-sm opacity-90">Không tìm thấy kết quả chính xác. Dưới đây là các địa điểm có tên gần giống.</p>
             </div>
         </div>
 
-        <!-- Results Grid -->
-        <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Cards will be injected here -->
-        </div>
+        <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-10"></div>
 
-        <!-- No Results State -->
-        <div id="noResults" class="hidden text-center py-12">
-            <div class="text-gray-300 mb-4">
-                <i class="fas fa-search-location text-6xl"></i>
-            </div>
-            <h3 class="text-xl font-medium text-gray-600">Không tìm thấy địa điểm nào</h3>
-            <p class="text-gray-500 mt-2">Hãy thử thay đổi từ khóa hoặc mở rộng khu vực tìm kiếm.</p>
+        <div id="noResults" class="hidden flex-col items-center justify-center py-16 text-slate-400">
+            <i class="fas fa-folder-open text-5xl mb-4 opacity-50"></i>
+            <p class="text-lg font-medium">Không tìm thấy dữ liệu phù hợp</p>
         </div>
-
     </main>
 
     <!-- Map Modal -->
-    <div id="mapModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-[60] hidden flex items-center justify-center p-4 modal">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col modal-content overflow-hidden">
-            <!-- Modal Header -->
-            <div class="p-4 bg-red-700 text-white flex justify-between items-center shadow-md">
-                <div class="flex items-center">
-                    <i class="fas fa-map-marked-alt mr-3 text-xl"></i>
-                    <div>
-                        <h3 class="font-bold text-lg">Bản đồ địa điểm</h3>
-                        <p id="mapTitle" class="text-xs text-red-200">Đang tải...</p>
+    <div id="mapModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+        <div class="modal-content bg-white w-full max-w-5xl h-[85vh] rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-slate-800 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold flex items-center gap-2"><i class="fas fa-map"></i> <span id="mapTitle">Bản đồ</span></h3>
+                <button onclick="closeMap()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-grow relative bg-slate-100">
+                <div id="mapLoading" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+                    <i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-red-500"></i>
+                    <span>Đang tải Google Maps...</span>
+                </div>
+                <iframe id="mapFrame" class="w-full h-full border-0" allowfullscreen loading="lazy" onload="document.getElementById('mapLoading').style.display='none'"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="modal-content bg-white w-full max-w-sm rounded-xl shadow-xl overflow-hidden p-6">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl"><i class="fas fa-lock"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Đăng nhập hệ thống</h3>
+                <p class="text-sm text-slate-500">Quyền quản trị viên để chỉnh sửa dữ liệu</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
+                    <input type="password" id="loginPassword" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="Nhập mật khẩu (admin)">
+                </div>
+                <button onclick="login()" class="w-full bg-red-700 text-white py-2 rounded-lg font-bold hover:bg-red-800 transition-colors shadow-md shadow-red-200">Xác nhận</button>
+                <button onclick="toggleLoginModal()" class="w-full text-slate-500 py-2 hover:text-slate-700 text-sm">Hủy bỏ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Info Modal -->
+    <div id="editModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="modal-content bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-red-700 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold">Chỉnh sửa thông tin</h3>
+                <button onclick="closeEditModal()" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                <div class="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <span class="block text-xs text-slate-500 uppercase font-bold">Địa điểm</span>
+                    <span id="editNameDisplay" class="text-lg font-bold text-slate-800">Tên địa điểm</span>
+                    <span id="editDistrictDisplay" class="text-sm text-slate-600 block">Quận</span>
+                </div>
+                <input type="hidden" id="editId">
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Diện tích áp dụng (m²)</label>
+                    <div class="relative">
+                        <input type="text" id="editArea" class="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="VD: 50-100m2, MT > 5m">
+                        <i class="fas fa-ruler-combined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     </div>
                 </div>
-                <button onclick="closeMap()" class="text-white hover:text-red-200 text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-600 transition-colors">
-                    &times;
-                </button>
-            </div>
-            
-            <!-- Map Frame -->
-            <div class="flex-grow relative bg-gray-100">
-                <div id="mapLoading" class="absolute inset-0 flex items-center justify-center text-gray-500">
-                    <i class="fas fa-spinner fa-spin mr-2"></i> Đang tải bản đồ Google Maps...
+                <div class="border-t border-slate-100 my-4"></div>
+                <h4 class="text-sm font-bold text-slate-700 mb-3 uppercase">Giá tham khảo (VNĐ/Tháng)</h4>
+                <div class="space-y-3">
+                    <div id="fieldSmall">
+                        <label class="flex justify-between text-sm mb-1"><span class="text-blue-700 font-medium">Small Store</span></label>
+                        <input type="text" id="editPriceSmall" class="w-full px-3 py-2 border border-blue-200 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                    </div>
+                    <div id="fieldStation">
+                        <label class="flex justify-between text-sm mb-1"><span class="text-green-700 font-medium">Station</span></label>
+                        <input type="text" id="editPriceStation" class="w-full px-3 py-2 border border-green-200 bg-green-50 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm">
+                    </div>
+                    <div id="fieldFlagship">
+                        <label class="flex justify-between text-sm mb-1"><span class="text-pink-700 font-medium">Flagship</span></label>
+                        <input type="text" id="editPriceFlagship" class="w-full px-3 py-2 border border-pink-200 bg-pink-50 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none text-sm">
+                    </div>
                 </div>
-                <iframe id="mapFrame" class="absolute inset-0 w-full h-full z-10" frameborder="0" style="border:0;" allowfullscreen="" loading="lazy" onload="document.getElementById('mapLoading').style.display='none'"></iframe>
             </div>
-            
-            <!-- Modal Footer -->
-            <div class="p-3 bg-gray-50 text-right border-t border-gray-200">
-                <button onclick="closeMap()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium transition-colors">
-                    Đóng
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">Hủy</button>
+                <button onclick="saveData()" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-md shadow-red-200 transition-all transform hover:-translate-y-0.5">
+                    <i class="fas fa-save mr-1"></i> Lưu thay đổi
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
-        <p>© 2024 Vietnam Spirits Star JSC.</p>
-        <p class="mt-1">Dữ liệu tham khảo nội bộ phục vụ phát triển mặt bằng.</p>
-    </footer>
-
-    <!-- Data Script -->
     <script>
-        // Dữ liệu được trích xuất từ file PDF
-        const locations = [
-            // Ba Đình
-            { district: "Ba Đình", name: "Trần Huy Liệu", small: false, station: true, flagship: false },
-            { district: "Ba Đình", name: "Đội Cấn", small: false, station: true, flagship: false },
-            { district: "Ba Đình", name: "Thành Công", small: false, station: true, flagship: false },
-            { district: "Ba Đình", name: "Núi Trúc", small: false, station: true, flagship: false },
-            { district: "Ba Đình", name: "Kim Mã", small: true, station: true, flagship: false },
-            { district: "Ba Đình", name: "Linh Lang", small: true, station: false, flagship: false },
-            { district: "Ba Đình", name: "Vạn Phúc - Vạn Bảo", small: true, station: false, flagship: false },
-            { district: "Ba Đình", name: "Hoàng Hoa Thám", small: true, station: false, flagship: false },
-            { district: "Ba Đình", name: "Phố Vĩnh Phúc", small: true, station: false, flagship: false },
-            { district: "Ba Đình", name: "Quán Thánh", small: false, station: true, flagship: false },
-            { district: "Ba Đình", name: "Phố Phúc Xá (Tân Ấp)", small: true, station: false, flagship: false },
-            { district: "Ba Đình", name: "Ngọc Hà", small: false, station: true, flagship: false },
-            { district: "Ba Đình", name: "Vinhomes Metropolis", small: false, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Ba Đình", name: "Giảng Võ Complex", small: false, station: true, flagship: false, type: "KĐT/Chung cư" },
-
-            // Đống Đa
-            { district: "Đống Đa", name: "Thái Thịnh", small: false, station: true, flagship: false },
-            { district: "Đống Đa", name: "Nam Đồng", small: false, station: true, flagship: false },
-            { district: "Đống Đa", name: "Tôn Đức Thắng", small: false, station: true, flagship: false },
-            { district: "Đống Đa", name: "Đặng Tiến Đông", small: true, station: true, flagship: false },
-            { district: "Đống Đa", name: "Ngõ 36 Hoàng Cầu", small: false, station: true, flagship: false },
-            { district: "Đống Đa", name: "Vũ Thạnh", small: true, station: true, flagship: false },
-            { district: "Đống Đa", name: "Quang Trung", small: true, station: true, flagship: true },
-            { district: "Đống Đa", name: "Vinhomes Nguyễn Chí Thanh", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Đống Đa", name: "Discovery Complex (Khối đế)", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Đống Đa", name: "Mipec Tower Tây Sơn", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Đống Đa", name: "Hoàng Cầu Skyline", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-
-            // Cầu Giấy
-            { district: "Cầu Giấy", name: "Tô Hiệu", small: false, station: true, flagship: false },
-            { district: "Cầu Giấy", name: "Trung Kính", small: false, station: true, flagship: false },
-            { district: "Cầu Giấy", name: "Yên Hòa", small: true, station: true, flagship: false },
-            { district: "Cầu Giấy", name: "Trung Hòa", small: false, station: true, flagship: false },
-            { district: "Cầu Giấy", name: "Trần Quốc Vượng", small: false, station: true, flagship: false },
-            { district: "Cầu Giấy", name: "Duy Tân", small: true, station: false, flagship: false },
-            { district: "Cầu Giấy", name: "Nguyễn Khánh Toàn", small: false, station: true, flagship: true },
-            { district: "Cầu Giấy", name: "Hoàng Đạo Thúy", small: true, station: true, flagship: true },
-            { district: "Cầu Giấy", name: "Đỗ Quang", small: true, station: false, flagship: false },
-            { district: "Cầu Giấy", name: "Hoàng Minh Giám", small: true, station: false, flagship: false },
-            { district: "Cầu Giấy", name: "Nguyễn Thị Định", small: true, station: false, flagship: false },
-            { district: "Cầu Giấy", name: "KĐT Trung Hòa - Nhân Chính", small: true, station: true, flagship: true, type: "KĐT/Chung cư" },
-            { district: "Cầu Giấy", name: "Indochina Plaza", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Cầu Giấy", name: "Discovery Complex", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Cầu Giấy", name: "D'Capital (Trần Duy Hưng)", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Cầu Giấy", name: "The Manor", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Cầu Giấy", name: "Imperia Garden", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Cầu Giấy", name: "GoldMark City", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-
-            // Hai Bà Trưng
-            { district: "Hai Bà Trưng", name: "Bạch Mai", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Minh Khai (đoạn trong)", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Phố Huế (đoạn giữa)", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Lạc Trung", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Lò Đúc", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Dương Văn Bé", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Nguyễn Du", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Nguyễn Công Trứ", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Ngô Thì Nhậm", small: true, station: true, flagship: false },
-            { district: "Hai Bà Trưng", name: "Times City", small: false, station: false, flagship: true, type: "KĐT/Chung cư" },
-            { district: "Hai Bà Trưng", name: "Hòa Bình Green City", small: false, station: true, flagship: false, type: "KĐT/Chung cư" },
-
-            // Tây Hồ
-            { district: "Tây Hồ", name: "Lạc Long Quân (đoạn trong)", small: true, station: true, flagship: false },
-            { district: "Tây Hồ", name: "Võ Chí Công (trong)", small: true, station: true, flagship: false },
-            { district: "Tây Hồ", name: "Âu Cơ (đoạn dân cư)", small: true, station: true, flagship: false },
-            { district: "Tây Hồ", name: "Xuân La", small: true, station: true, flagship: true },
-            { district: "Tây Hồ", name: "Xuân Đỉnh (Tây Hồ)", small: true, station: false, flagship: false },
-            { district: "Tây Hồ", name: "Yên Phụ Nhỏ", small: true, station: false, flagship: false },
-            { district: "Tây Hồ", name: "Nguyễn Hoàng Tôn", small: true, station: false, flagship: false },
-            { district: "Tây Hồ", name: "Ciputra", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Tây Hồ", name: "Sunshine Riverside", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Tây Hồ", name: "Nam Thăng Long", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-
-            // Hoàng Mai
-            { district: "Hoàng Mai", name: "Giải Phóng (đoạn trong)", small: true, station: false, flagship: false },
-            { district: "Hoàng Mai", name: "Trương Định", small: true, station: false, flagship: false },
-            { district: "Hoàng Mai", name: "Linh Đàm (KĐT)", small: true, station: false, flagship: false },
-            { district: "Hoàng Mai", name: "Tân Mai", small: true, station: false, flagship: false },
-            { district: "Hoàng Mai", name: "Đại Từ", small: true, station: false, flagship: false },
-            { district: "Hoàng Mai", name: "Nguyễn An Ninh", small: true, station: false, flagship: false },
-            { district: "Hoàng Mai", name: "Gamuda Gardens", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Hoàng Mai", name: "HH Linh Đàm", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
-
-            // Thanh Xuân
-            { district: "Thanh Xuân", name: "Nguyễn Trãi (đoạn trong)", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Hoàng Văn Thái", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Lê Trọng Tấn", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Ngụy Như Kon Tum", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Vũ Trọng Phụng", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Nguyễn Tuân", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Chính Kinh", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Triều Khúc", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Khương Đình", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Khương Hạ", small: true, station: false, flagship: false },
-            { district: "Thanh Xuân", name: "Royal City", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Thanh Xuân", name: "Imperia Garden (TX)", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Thanh Xuân", name: "Hapulico Complex", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-
-            // Hà Đông
-            { district: "Hà Đông", name: "Quang Trung (Hà Đông)", small: true, station: false, flagship: false },
-            { district: "Hà Đông", name: "Tố Hữu (đoạn trong)", small: true, station: false, flagship: false },
-            { district: "Hà Đông", name: "Nguyễn Trãi (HĐ)", small: true, station: false, flagship: false },
-            { district: "Hà Đông", name: "Lê Trọng Tấn (HĐ)", small: true, station: false, flagship: false },
-            { district: "Hà Đông", name: "ParkCity", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Hà Đông", name: "Văn Phú", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Hà Đông", name: "Mulberry Lane", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
-
-            // Long Biên
-            { district: "Long Biên", name: "Nguyễn Văn Cừ", small: false, station: true, flagship: false },
-            { district: "Long Biên", name: "Ngô Gia Tự", small: false, station: true, flagship: false },
-            { district: "Long Biên", name: "Việt Hưng (Tuyến phố)", small: false, station: true, flagship: false },
-            { district: "Long Biên", name: "Cổ Linh (trong)", small: false, station: true, flagship: false },
-            { district: "Long Biên", name: "Vinhomes Riverside", small: false, station: false, flagship: true, type: "KĐT/Chung cư" },
-            { district: "Long Biên", name: "KĐT Việt Hưng", small: false, station: false, flagship: true, type: "KĐT/Chung cư" },
-            
-            // Nam Từ Liêm
-            { district: "Nam Từ Liêm", name: "Mỹ Đình", small: false, station: true, flagship: true },
-            { district: "Nam Từ Liêm", name: "Lê Đức Thọ", small: false, station: true, flagship: true },
-            { district: "Nam Từ Liêm", name: "Hàm Nghi", small: false, station: true, flagship: true },
-            { district: "Nam Từ Liêm", name: "Phú Đô", small: true, station: true, flagship: false },
-            { district: "Nam Từ Liêm", name: "Vinhomes Smart City", small: false, station: true, flagship: true, type: "KĐT/Chung cư" },
-            { district: "Nam Từ Liêm", name: "The Manor Mỹ Đình", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
-            { district: "Nam Từ Liêm", name: "Keangnam", small: false, station: true, flagship: true, type: "KĐT/Chung cư" },
-
-            // Bắc Từ Liêm
-            { district: "Bắc Từ Liêm", name: "Xuân Đỉnh (Bắc Từ Liêm)", small: true, station: false, flagship: false },
-            { district: "Bắc Từ Liêm", name: "Cổ Nhuế", small: true, station: false, flagship: false },
-
-            // Hoàn Kiếm
-            { district: "Hoàn Kiếm", name: "Hàng Bông", small: true, station: false, flagship: false },
-            { district: "Hoàn Kiếm", name: "Nhà Thờ", small: true, station: false, flagship: false },
-            { district: "Hoàn Kiếm", name: "Hàng Trống", small: true, station: false, flagship: false },
-            { district: "Hoàn Kiếm", name: "Tạ Hiện", small: true, station: false, flagship: false },
-            { district: "Hoàn Kiếm", name: "Mã Mây", small: true, station: false, flagship: false },
-            { district: "Hoàn Kiếm", name: "Đinh Liệt", small: true, station: false, flagship: false },
-            { district: "Hoàn Kiếm", name: "Đồng Xuân", small: true, station: false, flagship: false },
+        // --- Data ---
+        const defaultLocations = [
+            { id: 1, district: "Ba Đình", name: "Trần Huy Liệu", small: false, station: true, flagship: false },
+            { id: 2, district: "Ba Đình", name: "Đội Cấn", small: false, station: true, flagship: false },
+            { id: 3, district: "Ba Đình", name: "Thành Công", small: false, station: true, flagship: false },
+            { id: 4, district: "Ba Đình", name: "Núi Trúc", small: false, station: true, flagship: false },
+            { id: 5, district: "Ba Đình", name: "Kim Mã", small: true, station: true, flagship: false },
+            { id: 6, district: "Ba Đình", name: "Linh Lang", small: true, station: false, flagship: false },
+            { id: 7, district: "Ba Đình", name: "Vạn Phúc - Vạn Bảo", small: true, station: false, flagship: false },
+            { id: 8, district: "Ba Đình", name: "Hoàng Hoa Thám", small: true, station: false, flagship: false },
+            { id: 9, district: "Ba Đình", name: "Phố Vĩnh Phúc", small: true, station: false, flagship: false },
+            { id: 10, district: "Ba Đình", name: "Quán Thánh", small: false, station: true, flagship: false },
+            { id: 11, district: "Ba Đình", name: "Phố Phúc Xá (Tân Ấp)", small: true, station: false, flagship: false },
+            { id: 12, district: "Ba Đình", name: "Ngọc Hà", small: false, station: true, flagship: false },
+            { id: 13, district: "Ba Đình", name: "Vinhomes Metropolis", small: false, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 14, district: "Ba Đình", name: "Giảng Võ Complex", small: false, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 15, district: "Đống Đa", name: "Thái Thịnh", small: false, station: true, flagship: false },
+            { id: 16, district: "Đống Đa", name: "Nam Đồng", small: false, station: true, flagship: false },
+            { id: 17, district: "Đống Đa", name: "Tôn Đức Thắng", small: false, station: true, flagship: false },
+            { id: 18, district: "Đống Đa", name: "Đặng Tiến Đông", small: true, station: true, flagship: false },
+            { id: 19, district: "Đống Đa", name: "Ngõ 36 Hoàng Cầu", small: false, station: true, flagship: false },
+            { id: 20, district: "Đống Đa", name: "Vũ Thạnh", small: true, station: true, flagship: false },
+            { id: 21, district: "Đống Đa", name: "Quang Trung", small: true, station: true, flagship: true },
+            { id: 22, district: "Đống Đa", name: "Vinhomes Nguyễn Chí Thanh", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 23, district: "Đống Đa", name: "Discovery Complex (Khối đế)", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 24, district: "Đống Đa", name: "Mipec Tower Tây Sơn", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 25, district: "Đống Đa", name: "Hoàng Cầu Skyline", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 26, district: "Cầu Giấy", name: "Tô Hiệu", small: false, station: true, flagship: false },
+            { id: 27, district: "Cầu Giấy", name: "Trung Kính", small: false, station: true, flagship: false },
+            { id: 28, district: "Cầu Giấy", name: "Yên Hòa", small: true, station: true, flagship: false },
+            { id: 29, district: "Cầu Giấy", name: "Trung Hòa", small: false, station: true, flagship: false },
+            { id: 30, district: "Cầu Giấy", name: "Trần Quốc Vượng", small: false, station: true, flagship: false },
+            { id: 31, district: "Cầu Giấy", name: "Duy Tân", small: true, station: false, flagship: false },
+            { id: 32, district: "Cầu Giấy", name: "Nguyễn Khánh Toàn", small: false, station: true, flagship: true },
+            { id: 33, district: "Cầu Giấy", name: "Hoàng Đạo Thúy", small: true, station: true, flagship: true },
+            { id: 34, district: "Cầu Giấy", name: "Đỗ Quang", small: true, station: false, flagship: false },
+            { id: 35, district: "Cầu Giấy", name: "Hoàng Minh Giám", small: true, station: false, flagship: false },
+            { id: 36, district: "Cầu Giấy", name: "Nguyễn Thị Định", small: true, station: false, flagship: false },
+            { id: 37, district: "Cầu Giấy", name: "KĐT Trung Hòa - Nhân Chính", small: true, station: true, flagship: true, type: "KĐT/Chung cư" },
+            { id: 38, district: "Cầu Giấy", name: "Indochina Plaza", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 39, district: "Cầu Giấy", name: "Discovery Complex", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 40, district: "Cầu Giấy", name: "D'Capital (Trần Duy Hưng)", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 41, district: "Cầu Giấy", name: "The Manor", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 42, district: "Cầu Giấy", name: "Imperia Garden", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 43, district: "Cầu Giấy", name: "GoldMark City", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 44, district: "Hai Bà Trưng", name: "Bạch Mai", small: true, station: true, flagship: false },
+            { id: 45, district: "Hai Bà Trưng", name: "Minh Khai (đoạn trong)", small: true, station: true, flagship: false },
+            { id: 46, district: "Hai Bà Trưng", name: "Phố Huế (đoạn giữa)", small: true, station: true, flagship: false },
+            { id: 47, district: "Hai Bà Trưng", name: "Lạc Trung", small: true, station: true, flagship: false },
+            { id: 48, district: "Hai Bà Trưng", name: "Lò Đúc", small: true, station: true, flagship: false },
+            { id: 49, district: "Hai Bà Trưng", name: "Dương Văn Bé", small: true, station: true, flagship: false },
+            { id: 50, district: "Hai Bà Trưng", name: "Nguyễn Du", small: true, station: true, flagship: false },
+            { id: 51, district: "Hai Bà Trưng", name: "Nguyễn Công Trứ", small: true, station: true, flagship: false },
+            { id: 52, district: "Hai Bà Trưng", name: "Ngô Thì Nhậm", small: true, station: true, flagship: false },
+            { id: 53, district: "Hai Bà Trưng", name: "Times City", small: false, station: false, flagship: true, type: "KĐT/Chung cư" },
+            { id: 54, district: "Hai Bà Trưng", name: "Hòa Bình Green City", small: false, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 55, district: "Tây Hồ", name: "Lạc Long Quân (đoạn trong)", small: true, station: true, flagship: false },
+            { id: 56, district: "Tây Hồ", name: "Võ Chí Công (trong)", small: true, station: true, flagship: false },
+            { id: 57, district: "Tây Hồ", name: "Âu Cơ (đoạn dân cư)", small: true, station: true, flagship: false },
+            { id: 58, district: "Tây Hồ", name: "Xuân La", small: true, station: true, flagship: true },
+            { id: 59, district: "Tây Hồ", name: "Xuân Đỉnh (Tây Hồ)", small: true, station: false, flagship: false },
+            { id: 60, district: "Tây Hồ", name: "Yên Phụ Nhỏ", small: true, station: false, flagship: false },
+            { id: 61, district: "Tây Hồ", name: "Nguyễn Hoàng Tôn", small: true, station: false, flagship: false },
+            { id: 62, district: "Tây Hồ", name: "Ciputra", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 63, district: "Tây Hồ", name: "Sunshine Riverside", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 64, district: "Tây Hồ", name: "Nam Thăng Long", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 65, district: "Hoàng Mai", name: "Giải Phóng (đoạn trong)", small: true, station: false, flagship: false },
+            { id: 66, district: "Hoàng Mai", name: "Trương Định", small: true, station: false, flagship: false },
+            { id: 67, district: "Hoàng Mai", name: "Linh Đàm (KĐT)", small: true, station: false, flagship: false },
+            { id: 68, district: "Hoàng Mai", name: "Tân Mai", small: true, station: false, flagship: false },
+            { id: 69, district: "Hoàng Mai", name: "Đại Từ", small: true, station: false, flagship: false },
+            { id: 70, district: "Hoàng Mai", name: "Nguyễn An Ninh", small: true, station: false, flagship: false },
+            { id: 71, district: "Hoàng Mai", name: "Gamuda Gardens", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
+            { id: 72, district: "Hoàng Mai", name: "HH Linh Đàm", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
+            { id: 73, district: "Thanh Xuân", name: "Nguyễn Trãi (đoạn trong)", small: true, station: false, flagship: false },
+            { id: 74, district: "Thanh Xuân", name: "Hoàng Văn Thái", small: true, station: false, flagship: false },
+            { id: 75, district: "Thanh Xuân", name: "Lê Trọng Tấn", small: true, station: false, flagship: false },
+            { id: 76, district: "Thanh Xuân", name: "Ngụy Như Kon Tum", small: true, station: false, flagship: false },
+            { id: 77, district: "Thanh Xuân", name: "Vũ Trọng Phụng", small: true, station: false, flagship: false },
+            { id: 78, district: "Thanh Xuân", name: "Nguyễn Tuân", small: true, station: false, flagship: false },
+            { id: 79, district: "Thanh Xuân", name: "Chính Kinh", small: true, station: false, flagship: false },
+            { id: 80, district: "Thanh Xuân", name: "Triều Khúc", small: true, station: false, flagship: false },
+            { id: 81, district: "Thanh Xuân", name: "Khương Đình", small: true, station: false, flagship: false },
+            { id: 82, district: "Thanh Xuân", name: "Khương Hạ", small: true, station: false, flagship: false },
+            { id: 83, district: "Thanh Xuân", name: "Royal City", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 84, district: "Thanh Xuân", name: "Imperia Garden (TX)", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 85, district: "Thanh Xuân", name: "Hapulico Complex", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 86, district: "Hà Đông", name: "Quang Trung (Hà Đông)", small: true, station: false, flagship: false },
+            { id: 87, district: "Hà Đông", name: "Tố Hữu (đoạn trong)", small: true, station: false, flagship: false },
+            { id: 88, district: "Hà Đông", name: "Nguyễn Trãi (HĐ)", small: true, station: false, flagship: false },
+            { id: 89, district: "Hà Đông", name: "Lê Trọng Tấn (HĐ)", small: true, station: false, flagship: false },
+            { id: 90, district: "Hà Đông", name: "ParkCity", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
+            { id: 91, district: "Hà Đông", name: "Văn Phú", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
+            { id: 92, district: "Hà Đông", name: "Mulberry Lane", small: true, station: false, flagship: false, type: "KĐT/Chung cư" },
+            { id: 93, district: "Long Biên", name: "Nguyễn Văn Cừ", small: false, station: true, flagship: false },
+            { id: 94, district: "Long Biên", name: "Ngô Gia Tự", small: false, station: true, flagship: false },
+            { id: 95, district: "Long Biên", name: "Việt Hưng (Tuyến phố)", small: false, station: true, flagship: false },
+            { id: 96, district: "Long Biên", name: "Cổ Linh (trong)", small: false, station: true, flagship: false },
+            { id: 97, district: "Long Biên", name: "Vinhomes Riverside", small: false, station: false, flagship: true, type: "KĐT/Chung cư" },
+            { id: 98, district: "Long Biên", name: "KĐT Việt Hưng", small: false, station: false, flagship: true, type: "KĐT/Chung cư" },
+            { id: 99, district: "Nam Từ Liêm", name: "Mỹ Đình", small: false, station: true, flagship: true },
+            { id: 100, district: "Nam Từ Liêm", name: "Lê Đức Thọ", small: false, station: true, flagship: true },
+            { id: 101, district: "Nam Từ Liêm", name: "Hàm Nghi", small: false, station: true, flagship: true },
+            { id: 102, district: "Nam Từ Liêm", name: "Phú Đô", small: true, station: true, flagship: false },
+            { id: 103, district: "Nam Từ Liêm", name: "Vinhomes Smart City", small: false, station: true, flagship: true, type: "KĐT/Chung cư" },
+            { id: 104, district: "Nam Từ Liêm", name: "The Manor Mỹ Đình", small: true, station: true, flagship: false, type: "KĐT/Chung cư" },
+            { id: 105, district: "Nam Từ Liêm", name: "Keangnam", small: false, station: true, flagship: true, type: "KĐT/Chung cư" },
+            { id: 106, district: "Bắc Từ Liêm", name: "Xuân Đỉnh (Bắc Từ Liêm)", small: true, station: false, flagship: false },
+            { id: 107, district: "Bắc Từ Liêm", name: "Cổ Nhuế", small: true, station: false, flagship: false },
+            { id: 108, district: "Hoàn Kiếm", name: "Hàng Bông", small: true, station: false, flagship: false },
+            { id: 109, district: "Hoàn Kiếm", name: "Nhà Thờ", small: true, station: false, flagship: false },
+            { id: 110, district: "Hoàn Kiếm", name: "Hàng Trống", small: true, station: false, flagship: false },
+            { id: 111, district: "Hoàn Kiếm", name: "Tạ Hiện", small: true, station: false, flagship: false },
+            { id: 112, district: "Hoàn Kiếm", name: "Mã Mây", small: true, station: false, flagship: false },
+            { id: 113, district: "Hoàn Kiếm", name: "Đinh Liệt", small: true, station: false, flagship: false },
+            { id: 114, district: "Hoàn Kiếm", name: "Đồng Xuân", small: true, station: false, flagship: false }
         ];
 
-        // --- Logic xử lý ---
+        let locations = [];
+        const STORAGE_KEY = 'vns_locations_data_v1';
+        const apiUrl = "https://script.google.com/macros/s/AKfycbw3zNQQWgEDdNfmr1PEbCTPcH44NQqLLnRLOgkOCdlej04drw0oXaLh3PNGDBO7l6g2/exec";
 
-        const grid = document.getElementById('resultsGrid');
-        const districtSelect = document.getElementById('districtFilter');
-        const modelSelect = document.getElementById('modelFilter');
-        const searchInput = document.getElementById('searchInput');
-        const resultCount = document.getElementById('resultCount');
-        const statusText = document.getElementById('statusText');
-        const noResults = document.getElementById('noResults');
-        const suggestionAlert = document.getElementById('suggestionAlert');
+        // Toast Helper
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            if (type === 'error') icon = 'times-circle';
 
-        // Lấy danh sách quận duy nhất để đưa vào select
-        const uniqueDistricts = [...new Set(locations.map(item => item.district))].sort();
-        uniqueDistricts.forEach(dist => {
-            const option = document.createElement('option');
-            option.value = dist;
-            option.textContent = dist;
-            districtSelect.appendChild(option);
-        });
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-${icon} text-lg"></i>
+                    <span class="text-sm font-medium text-slate-700">${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
 
-        // Hàm tính khoảng cách Levenshtein để so sánh độ tương đồng của chuỗi
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // --- Init & Data Loading ---
+        async function initData() {
+            setLoading(true);
+            const urlWithCache = `${apiUrl}?t=${new Date().getTime()}`;
+
+            try {
+                // Try fetch with credentials omit to avoid CORS issues with Google Auth
+                const response = await fetch(urlWithCache, { 
+                    method: 'GET',
+                    redirect: 'follow',
+                    mode: 'cors',
+                    credentials: 'omit' 
+                });
+                
+                if (!response.ok) throw new Error("Lỗi mạng hoặc quyền truy cập");
+                const cloudData = await response.json();
+                
+                if (cloudData && cloudData.length > 0) {
+                    locations = cloudData;
+                    updateConnectionStatus(true);
+                    showToast("Đã kết nối dữ liệu Cloud", "success");
+                } else {
+                    console.warn("Cloud data empty");
+                    locations = prepareDefaultData();
+                    updateConnectionStatus(true);
+                }
+            } catch (error) {
+                console.error("Lỗi kết nối Cloud:", error);
+                locations = loadLocalData();
+                updateConnectionStatus(false);
+                showToast("Không thể kết nối Cloud. Đang dùng chế độ Offline.", "warning");
+            } finally {
+                setLoading(false);
+                // Populate filters
+                populateFilters();
+                filterAndRender();
+            }
+        }
+
+        function populateFilters() {
+            const districtSelect = document.getElementById('districtFilter');
+            districtSelect.innerHTML = '<option value="all">Tất cả Quận/Huyện</option>';
+            const uniqueDistricts = [...new Set(locations.map(item => item.district))].sort();
+            uniqueDistricts.forEach(dist => {
+                const option = document.createElement('option');
+                option.value = dist;
+                option.textContent = dist;
+                districtSelect.appendChild(option);
+            });
+        }
+
+        function loadLocalData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            } else {
+                return prepareDefaultData();
+            }
+        }
+
+        function prepareDefaultData() {
+            return defaultLocations.map(loc => ({
+                ...loc,
+                area: "",
+                priceSmall: "",
+                priceStation: "",
+                priceFlagship: ""
+            }));
+        }
+
+        // --- Sync ---
+        async function syncToCloud() {
+            if(!confirm("Hành động này sẽ GHI ĐÈ toàn bộ dữ liệu trên Google Sheet. Tiếp tục?")) return;
+
+            setLoading(true, "Đang đồng bộ...");
+            try {
+                // Use no-cors for POST to avoid preflight issues (fire & forget)
+                await fetch(apiUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'sync_all', data: locations })
+                });
+                showToast("Đã gửi yêu cầu đồng bộ.", "success");
+            } catch (error) {
+                showToast("Lỗi đồng bộ: " + error.message, "error");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- Auth Logic ---
+        let isAdmin = false;
+
+        function toggleLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (modal.classList.contains('open')) {
+                modal.classList.remove('open');
+            } else {
+                modal.classList.add('open');
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
+        }
+
+        function login() {
+            const pass = document.getElementById('loginPassword').value;
+            if (pass === 'admin') {
+                isAdmin = true;
+                updateAuthUI();
+                toggleLoginModal();
+                filterAndRender(); 
+                showToast("Đăng nhập thành công!", "success");
+            } else {
+                showToast("Mật khẩu không đúng!", "error");
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            updateAuthUI();
+            filterAndRender();
+            showToast("Đã đăng xuất", "info");
+        }
+
+        function updateAuthUI() {
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userStatus = document.getElementById('userStatus');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const adminSyncBtn = document.getElementById('adminSyncBtn');
+
+            if (isAdmin) {
+                loginBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                userStatus.classList.remove('hidden');
+                adminSyncBtn.classList.remove('hidden');
+                usernameDisplay.textContent = 'Quản trị viên';
+                userStatus.classList.add('bg-green-100', 'text-green-800', 'border-green-200');
+                userStatus.classList.remove('bg-red-900/30', 'text-white');
+            } else {
+                loginBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                userStatus.classList.add('hidden');
+                adminSyncBtn.classList.add('hidden');
+            }
+        }
+
+        function updateConnectionStatus(isCloud) {
+            const dot = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            if(isCloud) {
+                dot.classList.remove('bg-slate-400', 'bg-red-500');
+                dot.classList.add('bg-green-400', 'animate-pulse');
+                text.textContent = 'Online Mode';
+                text.className = "text-green-100 font-medium text-xs";
+            } else {
+                dot.classList.remove('bg-slate-400', 'bg-green-400', 'animate-pulse');
+                dot.classList.add('bg-red-500');
+                text.textContent = 'Offline Mode';
+                text.className = "text-red-200 font-medium text-xs";
+            }
+        }
+
+        // --- Edit & Save Logic ---
+        function openEditModal(id) {
+            const item = locations.find(l => l.id === id);
+            if (!item) return;
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editNameDisplay').textContent = item.name;
+            document.getElementById('editDistrictDisplay').textContent = item.district;
+            document.getElementById('editArea').value = item.area || '';
+            document.getElementById('editPriceSmall').value = item.priceSmall || '';
+            document.getElementById('editPriceStation').value = item.priceStation || '';
+            document.getElementById('editPriceFlagship').value = item.priceFlagship || '';
+
+            toggleFieldStyle('fieldSmall', item.small);
+            toggleFieldStyle('fieldStation', item.station);
+            toggleFieldStyle('fieldFlagship', item.flagship);
+
+            document.getElementById('editModal').classList.add('open');
+        }
+
+        function toggleFieldStyle(elementId, isApplicable) {
+            const el = document.getElementById(elementId);
+            el.style.opacity = isApplicable ? "1" : "0.5";
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('open');
+        }
+
+        async function saveData() {
+            const id = parseInt(document.getElementById('editId').value);
+            const index = locations.findIndex(l => l.id === id);
+            
+            if (index !== -1) {
+                const newData = {
+                    area: document.getElementById('editArea').value,
+                    priceSmall: document.getElementById('editPriceSmall').value,
+                    priceStation: document.getElementById('editPriceStation').value,
+                    priceFlagship: document.getElementById('editPriceFlagship').value
+                };
+
+                // Update RAM
+                locations[index] = { ...locations[index], ...newData };
+                
+                // Backup local
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+                
+                // Save to Cloud if online
+                if (document.getElementById('connectionText').textContent.includes('Online')) {
+                    setLoading(true, "Đang lưu lên Cloud...");
+                    try {
+                        const payload = { action: 'update', id: id, ...newData };
+                        await fetch(apiUrl, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify(payload)
+                        });
+                        showToast("Đã lưu thay đổi", "success");
+                    } catch (e) {
+                        showToast("Lỗi lưu Cloud (đã lưu offline)", "warning");
+                    } finally {
+                        setLoading(false);
+                    }
+                } else {
+                    showToast("Đã lưu (Offline)", "info");
+                }
+                
+                closeEditModal();
+                filterAndRender();
+            }
+        }
+
+        // --- Helpers ---
+        function setLoading(isLoading, text = "Đang xử lý...") {
+            const el = document.getElementById('globalLoading');
+            const txt = document.getElementById('loadingText');
+            if (isLoading) {
+                txt.textContent = text;
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
         function levenshtein(a, b) {
             if (a.length === 0) return b.length;
             if (b.length === 0) return a.length;
@@ -359,7 +640,6 @@
             return matrix[b.length][a.length];
         }
 
-        // Hàm xoá dấu tiếng Việt để so sánh dễ hơn
         function removeVietnameseTones(str) {
             str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
             str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
@@ -371,93 +651,88 @@
             return str;
         }
 
-        // Map Functions
+        // --- Map Functions ---
         function openMap(name, district) {
             const modal = document.getElementById('mapModal');
             const frame = document.getElementById('mapFrame');
             const title = document.getElementById('mapTitle');
             const loading = document.getElementById('mapLoading');
-            
-            // Construct search query: Tên + Quận + Hà Nội
             const query = `${name}, ${district}, Hà Nội`;
             const src = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
-            
-            title.textContent = `Vị trí: ${query}`;
-            loading.style.display = 'flex'; // Reset loading state
+            title.textContent = query;
+            loading.style.display = 'flex';
             frame.src = src;
-            
-            modal.classList.remove('hidden');
-            // Small delay to allow display flex to apply before opacity transition
-            setTimeout(() => {
-                modal.classList.add('open');
-            }, 10);
+            modal.classList.add('open');
         }
 
         function closeMap() {
             const modal = document.getElementById('mapModal');
             modal.classList.remove('open');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.getElementById('mapFrame').src = ''; // Stop loading to save memory
-            }, 300); // Wait for transition
+            setTimeout(() => { document.getElementById('mapFrame').src = ''; }, 300);
         }
 
-        // Close map when clicking outside content
-        document.getElementById('mapModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeMap();
-            }
-        });
+        // --- Rendering ---
+        const grid = document.getElementById('resultsGrid');
+        const districtSelect = document.getElementById('districtFilter');
+        const modelSelect = document.getElementById('modelFilter');
+        const searchInput = document.getElementById('searchInput');
+        const resultCount = document.getElementById('statusText');
+        const noResults = document.getElementById('noResults');
+        const suggestionAlert = document.getElementById('suggestionAlert');
 
-        // Hàm render thẻ
         function renderCard(item) {
             let tagsHtml = '';
-            if (item.small) tagsHtml += `<span class="model-tag tag-small">Small Store</span>`;
+            if (item.small) tagsHtml += `<span class="model-tag tag-small">Small</span>`;
             if (item.station) tagsHtml += `<span class="model-tag tag-station">Station</span>`;
             if (item.flagship) tagsHtml += `<span class="model-tag tag-flagship">Flagship</span>`;
 
-            // Icon dựa trên loại (Chung cư hay Phố)
             const icon = item.type === "KĐT/Chung cư" 
-                ? '<i class="fas fa-building text-red-500 mr-2"></i>' 
-                : '<i class="fas fa-road text-gray-500 mr-2"></i>';
+                ? '<i class="fas fa-building text-slate-400 mr-2"></i>' 
+                : '<i class="fas fa-road text-slate-400 mr-2"></i>';
+
+            let pricesHtml = '';
+            const hasData = item.area || item.priceSmall || item.priceStation || item.priceFlagship;
+            
+            if (hasData) {
+                let rows = '';
+                if(item.area) rows += `<div class="price-row"><span class="price-label">DT:</span> <span class="price-value">${item.area}</span></div>`;
+                if(item.priceSmall) rows += `<div class="price-row"><span class="price-label text-blue-600">Sm:</span> <span class="price-value text-blue-700">${item.priceSmall}</span></div>`;
+                if(item.priceStation) rows += `<div class="price-row"><span class="price-label text-green-600">St:</span> <span class="price-value text-green-700">${item.priceStation}</span></div>`;
+                if(item.priceFlagship) rows += `<div class="price-row"><span class="price-label text-pink-600">Fl:</span> <span class="price-value text-pink-700">${item.priceFlagship}</span></div>`;
+                pricesHtml = `<div class="price-info">${rows}</div>`;
+            }
+
+            const editButton = isAdmin 
+                ? `<button onclick="openEditModal(${item.id})" class="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-full shadow-sm flex items-center justify-center transition-all z-10" title="Chỉnh sửa"><i class="fas fa-pen text-xs"></i></button>` 
+                : '';
 
             return `
-                <div class="card bg-white p-5 rounded-lg shadow-sm border border-gray-100 flex flex-col justify-between h-full">
-                    <div>
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs font-bold uppercase text-gray-400 tracking-wider">${item.district}</span>
-                            ${item.type === "KĐT/Chung cư" ? '<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">Chung cư/KĐT</span>' : ''}
+                <div class="card bg-white p-4 rounded-xl shadow-sm relative group flex flex-col h-full">
+                    ${editButton}
+                    <div class="flex-grow cursor-pointer" onclick="openMap('${item.name.replace(/'/g, "\\'")}', '${item.district}')">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider border border-slate-100 px-1 rounded">${item.district}</span>
+                            ${item.type === "KĐT/Chung cư" ? '<span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded ml-2">Chung cư</span>' : ''}
                         </div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <h3 class="text-base font-bold text-slate-800 mb-2 leading-tight group-hover:text-red-700 transition-colors">
                             ${icon} ${item.name}
                         </h3>
-                    </div>
-                    <div>
-                        <div class="border-t border-gray-100 pt-3 mt-1">
-                            <p class="text-xs text-gray-500 mb-2">Mô hình đề xuất:</p>
-                            <div class="flex flex-wrap mb-3">
-                                ${tagsHtml}
-                            </div>
-                            <button onclick="openMap('${item.name.replace(/'/g, "\\'")}', '${item.district}')" 
-                                class="w-full py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-md text-sm font-medium transition-colors flex items-center justify-center group">
-                                <i class="fas fa-map-marked-alt mr-2 group-hover:scale-110 transition-transform"></i> Xem vị trí
-                            </button>
+                        <div class="mb-2">
+                            ${tagsHtml}
                         </div>
+                        ${pricesHtml}
                     </div>
                 </div>
             `;
         }
 
-        // Hàm lọc và hiển thị
         function filterAndRender() {
             let searchText = searchInput.value.toLowerCase().trim();
             const selectedDistrict = districtSelect.value;
             const selectedModel = modelSelect.value;
             
-            // Xóa trạng thái cũ
             suggestionAlert.classList.add('hidden');
             
-            // Lọc chính xác (như cũ)
             let filteredData = locations.filter(item => {
                 const matchSearch = item.name.toLowerCase().includes(searchText) || item.district.toLowerCase().includes(searchText);
                 const matchDistrict = selectedDistrict === 'all' || item.district === selectedDistrict;
@@ -468,61 +743,41 @@
                 return matchSearch && matchDistrict && matchModel;
             });
 
-            // Nếu không tìm thấy kết quả chính xác VÀ có từ khóa tìm kiếm -> Tìm kiếm mờ (Fuzzy Search)
             let isSuggestion = false;
             if (filteredData.length === 0 && searchText.length > 0) {
                 const searchNoTone = removeVietnameseTones(searchText);
-                
                 filteredData = locations.filter(item => {
                     const nameLower = item.name.toLowerCase();
                     const nameNoTone = removeVietnameseTones(nameLower);
-                    
-                    // 1. Kiểm tra ngược: Tên đường có nằm TRONG từ khóa tìm kiếm không?
-                    // Ví dụ: Tìm "Số 5 Trần Huy Liệu" -> Chứa "Trần Huy Liệu" -> OK
                     const containsReverse = searchText.includes(nameLower);
-
-                    // 2. Kiểm tra mờ: Độ sai lệch ký tự thấp (Levenshtein)
-                    // Chỉ áp dụng nếu từ khóa đủ dài (>3 ký tự)
                     let fuzzyMatch = false;
                     if (searchNoTone.length > 3) {
                         const dist = levenshtein(searchNoTone, nameNoTone);
-                        // Cho phép sai số khoảng 20-30% độ dài chuỗi
                         fuzzyMatch = dist <= Math.max(2, nameNoTone.length * 0.3); 
                     }
-
-                    // Vẫn phải đảm bảo bộ lọc Quận và Model
                     const matchDistrict = selectedDistrict === 'all' || item.district === selectedDistrict;
                     let matchModel = true;
                     if (selectedModel === 'Small') matchModel = item.small;
                     if (selectedModel === 'Station') matchModel = item.station;
                     if (selectedModel === 'Flagship') matchModel = item.flagship;
-
                     return (containsReverse || fuzzyMatch) && matchDistrict && matchModel;
                 });
-
-                if (filteredData.length > 0) {
-                    isSuggestion = true;
-                }
+                if (filteredData.length > 0) isSuggestion = true;
             }
 
-            // Cập nhật DOM
             grid.innerHTML = filteredData.map(renderCard).join('');
             
             if (isSuggestion) {
                 suggestionAlert.classList.remove('hidden');
-                statusText.innerHTML = `Tìm thấy <span class="font-bold text-yellow-600">${filteredData.length}</span> gợi ý gần đúng`;
+                resultCount.textContent = `Tìm thấy ${filteredData.length} gợi ý`;
                 noResults.classList.add('hidden');
-                grid.classList.remove('hidden');
             } else {
-                resultCount.textContent = filteredData.length;
-                statusText.innerHTML = `Tìm thấy <span id="resultCount" class="font-bold text-red-900">${filteredData.length}</span> địa điểm`;
-                
+                resultCount.textContent = `Tìm thấy ${filteredData.length} địa điểm`;
                 if (filteredData.length === 0) {
                     noResults.classList.remove('hidden');
-                    grid.classList.add('hidden');
+                    resultCount.textContent = '';
                 } else {
                     noResults.classList.add('hidden');
-                    grid.classList.remove('hidden');
                 }
             }
         }
@@ -534,14 +789,21 @@
             filterAndRender();
         }
 
-        // Event Listeners
-        searchInput.addEventListener('input', filterAndRender);
-        districtSelect.addEventListener('change', filterAndRender);
-        modelSelect.addEventListener('change', filterAndRender);
-
-        // Initial Render
-        filterAndRender();
-
+        document.addEventListener('DOMContentLoaded', () => {
+            initData();
+            searchInput.addEventListener('input', filterAndRender);
+            districtSelect.addEventListener('change', filterAndRender);
+            modelSelect.addEventListener('change', filterAndRender);
+            window.onclick = function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.classList.remove('open');
+                    setTimeout(() => { document.getElementById('mapFrame').src = ''; }, 300);
+                }
+            }
+            document.getElementById('loginPassword').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') login();
+            });
+        });
     </script>
 </body>
 </html>
