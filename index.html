@@ -48,7 +48,7 @@
     <div id="globalLoading" class="hidden fixed inset-0 flex items-center justify-center">
         <div class="bg-white p-4 rounded-xl shadow-2xl flex flex-col items-center">
             <i class="fas fa-circle-notch fa-spin text-3xl text-red-600 mb-2"></i>
-            <span class="text-sm font-medium text-slate-600" id="loadingText">Đang kết nối Cloud...</span>
+            <span class="text-sm font-medium text-slate-600" id="loadingText">Đang xử lý...</span>
         </div>
     </div>
 
@@ -69,9 +69,14 @@
             </div>
             
             <div class="flex items-center gap-2">
+                <!-- Add Button (Admin Only) -->
+                <button id="addBtn" onclick="openAddModal()" class="hidden text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md font-bold transition-colors shadow-sm mr-2" title="Thêm địa điểm mới">
+                    <i class="fas fa-plus mr-1"></i> Thêm mới
+                </button>
+
                 <!-- Admin Sync Button (Hidden by default) -->
-                <button id="adminSyncBtn" onclick="syncToCloud()" class="hidden text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors shadow-sm mr-2" title="Đẩy toàn bộ dữ liệu gốc lên Sheet (Chỉ dùng khi Sheet trống)">
-                    <i class="fas fa-cloud-upload-alt mr-1"></i> Đồng bộ Cloud (Admin)
+                <button id="adminSyncBtn" onclick="syncToCloud(false)" class="hidden text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-md font-bold transition-colors shadow-sm mr-2" title="Đẩy toàn bộ dữ liệu gốc lên Sheet">
+                    <i class="fas fa-cloud-upload-alt mr-1"></i> Sync All
                 </button>
 
                 <div id="userStatus" class="hidden md:flex items-center gap-2 text-sm bg-red-900/30 px-3 py-1 rounded-full border border-red-500/30">
@@ -177,20 +182,61 @@
         </div>
     </div>
 
-    <!-- Edit Info Modal -->
+    <!-- Edit Info Modal (Updated for Add/Edit) -->
     <div id="editModal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
         <div class="modal-content bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
             <div class="bg-red-700 text-white p-4 flex justify-between items-center shrink-0">
-                <h3 class="font-bold">Chỉnh sửa thông tin</h3>
+                <h3 class="font-bold" id="modalTitle">Chỉnh sửa thông tin</h3>
                 <button onclick="closeEditModal()" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6 overflow-y-auto custom-scrollbar">
-                <div class="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <span class="block text-xs text-slate-500 uppercase font-bold">Địa điểm</span>
-                    <span id="editNameDisplay" class="text-lg font-bold text-slate-800">Tên địa điểm</span>
-                    <span id="editDistrictDisplay" class="text-sm text-slate-600 block">Quận</span>
-                </div>
+                
                 <input type="hidden" id="editId">
+
+                <!-- Basic Info (Editable now) -->
+                <div class="mb-4 space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tên địa điểm</label>
+                        <input type="text" id="editName" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none font-bold text-slate-800" placeholder="Nhập tên địa điểm...">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quận/Huyện</label>
+                            <input type="text" id="editDistrict" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm" placeholder="VD: Ba Đình">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Loại hình</label>
+                            <select id="editType" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm">
+                                <option value="">Tuyến phố</option>
+                                <option value="KĐT/Chung cư">KĐT/Chung cư</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Suitability -->
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mô hình phù hợp</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="checkSmall" class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-slate-700">Small Store</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="checkStation" class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-slate-700">Station</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="checkFlagship" class="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500">
+                            <span class="ml-2 text-sm text-slate-700">Flagship</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 my-4"></div>
+                
+                <!-- Details -->
                 <div class="mb-5">
                     <label class="block text-sm font-bold text-slate-700 mb-1">Diện tích áp dụng (m²)</label>
                     <div class="relative">
@@ -198,7 +244,7 @@
                         <i class="fas fa-ruler-combined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     </div>
                 </div>
-                <div class="border-t border-slate-100 my-4"></div>
+                
                 <h4 class="text-sm font-bold text-slate-700 mb-3 uppercase">Giá tham khảo (VNĐ/Tháng)</h4>
                 <div class="space-y-3">
                     <div id="fieldSmall">
@@ -227,6 +273,103 @@
     <script>
         // --- Data ---
         const defaultLocations = [
+            // ... (Data kept same as before for brevity) ...
+            { id: 1, district: "Ba Đình", name: "Trần Huy Liệu", small: false, station: true, flagship: false },
+            { id: 2, district: "Ba Đình", name: "Đội Cấn", small: false, station: true, flagship: false },
+            // ... (I will reuse the existing array in memory, no need to re-paste all 100 lines here) ...
+        ];
+        
+        // RE-INITIALIZE FULL DEFAULT DATA FOR ROBUSTNESS (Since I can't "include" effectively in this view)
+        // I'll use a shorter placeholder list if not provided, BUT since you need functionality,
+        // I will copy the full list from previous context to ensure it works out of the box.
+        
+        let locations = [];
+        const STORAGE_KEY = 'vns_locations_data_v1';
+        const apiUrl = "https://script.google.com/macros/s/AKfycbw3zNQQWgEDdNfmr1PEbCTPcH44NQqLLnRLOgkOCdlej04drw0oXaLh3PNGDBO7l6g2/exec";
+
+        // Toast Helper
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'warning') icon = 'exclamation-triangle';
+            if (type === 'error') icon = 'times-circle';
+
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-${icon} text-lg"></i>
+                    <span class="text-sm font-medium text-slate-700">${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // --- Init & Data Loading ---
+        async function initData() {
+            setLoading(true);
+            const urlWithCache = `${apiUrl}?t=${new Date().getTime()}`;
+
+            try {
+                const response = await fetch(urlWithCache, { 
+                    method: 'GET',
+                    redirect: 'follow',
+                    mode: 'cors',
+                    credentials: 'omit' 
+                });
+                
+                if (!response.ok) throw new Error("Lỗi mạng");
+                const cloudData = await response.json();
+                
+                if (cloudData && cloudData.length > 0) {
+                    locations = cloudData;
+                    updateConnectionStatus(true);
+                    showToast("Đã kết nối dữ liệu Cloud", "success");
+                } else {
+                    locations = loadLocalData();
+                    updateConnectionStatus(true);
+                }
+            } catch (error) {
+                console.error("Lỗi kết nối Cloud:", error);
+                locations = loadLocalData();
+                updateConnectionStatus(false);
+                showToast("Không thể kết nối Cloud. Đang dùng chế độ Offline.", "warning");
+            } finally {
+                setLoading(false);
+                populateFilters();
+                filterAndRender();
+            }
+        }
+
+        function populateFilters() {
+            const districtSelect = document.getElementById('districtFilter');
+            const currentVal = districtSelect.value;
+            districtSelect.innerHTML = '<option value="all">Tất cả Quận/Huyện</option>';
+            const uniqueDistricts = [...new Set(locations.map(item => item.district))].sort();
+            uniqueDistricts.forEach(dist => {
+                const option = document.createElement('option');
+                option.value = dist;
+                option.textContent = dist;
+                districtSelect.appendChild(option);
+            });
+            districtSelect.value = currentVal; // Keep selection if possible
+        }
+
+        function loadLocalData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            return stored ? JSON.parse(stored) : getBackupDefaultData();
+        }
+
+        function getBackupDefaultData() {
+             return [
             { id: 1, district: "Ba Đình", name: "Trần Huy Liệu", small: false, station: true, flagship: false },
             { id: 2, district: "Ba Đình", name: "Đội Cấn", small: false, station: true, flagship: false },
             { id: 3, district: "Ba Đình", name: "Thành Công", small: false, station: true, flagship: false },
@@ -342,112 +485,13 @@
             { id: 113, district: "Hoàn Kiếm", name: "Đinh Liệt", small: true, station: false, flagship: false },
             { id: 114, district: "Hoàn Kiếm", name: "Đồng Xuân", small: true, station: false, flagship: false }
         ];
-
-        let locations = [];
-        const STORAGE_KEY = 'vns_locations_data_v1';
-        const apiUrl = "https://script.google.com/macros/s/AKfycbw3zNQQWgEDdNfmr1PEbCTPcH44NQqLLnRLOgkOCdlej04drw0oXaLh3PNGDBO7l6g2/exec";
-
-        // Toast Helper
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            
-            let icon = 'info-circle';
-            if (type === 'success') icon = 'check-circle';
-            if (type === 'warning') icon = 'exclamation-triangle';
-            if (type === 'error') icon = 'times-circle';
-
-            toast.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-${icon} text-lg"></i>
-                    <span class="text-sm font-medium text-slate-700">${message}</span>
-                </div>
-                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
-            `;
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'fadeOut 0.3s forwards';
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
-        }
-
-        // --- Init & Data Loading ---
-        async function initData() {
-            setLoading(true);
-            const urlWithCache = `${apiUrl}?t=${new Date().getTime()}`;
-
-            try {
-                // Try fetch with credentials omit to avoid CORS issues with Google Auth
-                const response = await fetch(urlWithCache, { 
-                    method: 'GET',
-                    redirect: 'follow',
-                    mode: 'cors',
-                    credentials: 'omit' 
-                });
-                
-                if (!response.ok) throw new Error("Lỗi mạng hoặc quyền truy cập");
-                const cloudData = await response.json();
-                
-                if (cloudData && cloudData.length > 0) {
-                    locations = cloudData;
-                    updateConnectionStatus(true);
-                    showToast("Đã kết nối dữ liệu Cloud", "success");
-                } else {
-                    console.warn("Cloud data empty");
-                    locations = prepareDefaultData();
-                    updateConnectionStatus(true);
-                }
-            } catch (error) {
-                console.error("Lỗi kết nối Cloud:", error);
-                locations = loadLocalData();
-                updateConnectionStatus(false);
-                showToast("Không thể kết nối Cloud. Đang dùng chế độ Offline.", "warning");
-            } finally {
-                setLoading(false);
-                // Populate filters
-                populateFilters();
-                filterAndRender();
-            }
-        }
-
-        function populateFilters() {
-            const districtSelect = document.getElementById('districtFilter');
-            districtSelect.innerHTML = '<option value="all">Tất cả Quận/Huyện</option>';
-            const uniqueDistricts = [...new Set(locations.map(item => item.district))].sort();
-            uniqueDistricts.forEach(dist => {
-                const option = document.createElement('option');
-                option.value = dist;
-                option.textContent = dist;
-                districtSelect.appendChild(option);
-            });
-        }
-
-        function loadLocalData() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                return JSON.parse(stored);
-            } else {
-                return prepareDefaultData();
-            }
-        }
-
-        function prepareDefaultData() {
-            return defaultLocations.map(loc => ({
-                ...loc,
-                area: "",
-                priceSmall: "",
-                priceStation: "",
-                priceFlagship: ""
-            }));
         }
 
         // --- Sync ---
-        async function syncToCloud() {
-            if(!confirm("Hành động này sẽ GHI ĐÈ toàn bộ dữ liệu trên Google Sheet. Tiếp tục?")) return;
+        async function syncToCloud(silent = false) {
+            if(!silent && !confirm("Hành động này sẽ GHI ĐÈ toàn bộ dữ liệu trên Google Sheet. Tiếp tục?")) return;
 
-            setLoading(true, "Đang đồng bộ...");
+            setLoading(true, "Đang đồng bộ Cloud...");
             try {
                 // Use no-cors for POST to avoid preflight issues (fire & forget)
                 await fetch(apiUrl, {
@@ -456,9 +500,9 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: 'sync_all', data: locations })
                 });
-                showToast("Đã gửi yêu cầu đồng bộ.", "success");
+                if(!silent) showToast("Đã gửi yêu cầu đồng bộ.", "success");
             } catch (error) {
-                showToast("Lỗi đồng bộ: " + error.message, "error");
+                if(!silent) showToast("Lỗi đồng bộ: " + error.message, "error");
             } finally {
                 setLoading(false);
             }
@@ -504,12 +548,14 @@
             const userStatus = document.getElementById('userStatus');
             const usernameDisplay = document.getElementById('usernameDisplay');
             const adminSyncBtn = document.getElementById('adminSyncBtn');
+            const addBtn = document.getElementById('addBtn');
 
             if (isAdmin) {
                 loginBtn.classList.add('hidden');
                 logoutBtn.classList.remove('hidden');
                 userStatus.classList.remove('hidden');
                 adminSyncBtn.classList.remove('hidden');
+                addBtn.classList.remove('hidden'); // Show Add button
                 usernameDisplay.textContent = 'Quản trị viên';
                 userStatus.classList.add('bg-green-100', 'text-green-800', 'border-green-200');
                 userStatus.classList.remove('bg-red-900/30', 'text-white');
@@ -518,6 +564,7 @@
                 logoutBtn.classList.add('hidden');
                 userStatus.classList.add('hidden');
                 adminSyncBtn.classList.add('hidden');
+                addBtn.classList.add('hidden'); // Hide Add button
             }
         }
 
@@ -527,39 +574,61 @@
             if(isCloud) {
                 dot.classList.remove('bg-slate-400', 'bg-red-500');
                 dot.classList.add('bg-green-400', 'animate-pulse');
-                text.textContent = 'Online Mode';
+                text.textContent = 'Online';
                 text.className = "text-green-100 font-medium text-xs";
             } else {
                 dot.classList.remove('bg-slate-400', 'bg-green-400', 'animate-pulse');
                 dot.classList.add('bg-red-500');
-                text.textContent = 'Offline Mode';
+                text.textContent = 'Offline';
                 text.className = "text-red-200 font-medium text-xs";
             }
         }
 
-        // --- Edit & Save Logic ---
+        // --- Edit / Add / Delete Logic ---
+        
+        function openAddModal() {
+            // Reset fields
+            document.getElementById('editId').value = ""; // Empty ID = Create New
+            document.getElementById('modalTitle').textContent = "Thêm địa điểm mới";
+            
+            document.getElementById('editName').value = "";
+            document.getElementById('editDistrict').value = "";
+            document.getElementById('editType').value = "";
+            
+            document.getElementById('checkSmall').checked = false;
+            document.getElementById('checkStation').checked = false;
+            document.getElementById('checkFlagship').checked = false;
+
+            document.getElementById('editArea').value = "";
+            document.getElementById('editPriceSmall').value = "";
+            document.getElementById('editPriceStation').value = "";
+            document.getElementById('editPriceFlagship').value = "";
+
+            document.getElementById('editModal').classList.add('open');
+        }
+
         function openEditModal(id) {
             const item = locations.find(l => l.id === id);
             if (!item) return;
 
             document.getElementById('editId').value = id;
-            document.getElementById('editNameDisplay').textContent = item.name;
-            document.getElementById('editDistrictDisplay').textContent = item.district;
+            document.getElementById('modalTitle').textContent = "Chỉnh sửa thông tin";
+            
+            document.getElementById('editName').value = item.name;
+            document.getElementById('editDistrict').value = item.district;
+            document.getElementById('editType').value = item.type || "";
+
+            // Checkboxes
+            document.getElementById('checkSmall').checked = !!item.small;
+            document.getElementById('checkStation').checked = !!item.station;
+            document.getElementById('checkFlagship').checked = !!item.flagship;
+
             document.getElementById('editArea').value = item.area || '';
             document.getElementById('editPriceSmall').value = item.priceSmall || '';
             document.getElementById('editPriceStation').value = item.priceStation || '';
             document.getElementById('editPriceFlagship').value = item.priceFlagship || '';
 
-            toggleFieldStyle('fieldSmall', item.small);
-            toggleFieldStyle('fieldStation', item.station);
-            toggleFieldStyle('fieldFlagship', item.flagship);
-
             document.getElementById('editModal').classList.add('open');
-        }
-
-        function toggleFieldStyle(elementId, isApplicable) {
-            const el = document.getElementById(elementId);
-            el.style.opacity = isApplicable ? "1" : "0.5";
         }
 
         function closeEditModal() {
@@ -567,46 +636,71 @@
         }
 
         async function saveData() {
-            const id = parseInt(document.getElementById('editId').value);
-            const index = locations.findIndex(l => l.id === id);
+            const idVal = document.getElementById('editId').value;
+            const isEdit = idVal !== "";
             
-            if (index !== -1) {
-                const newData = {
-                    area: document.getElementById('editArea').value,
-                    priceSmall: document.getElementById('editPriceSmall').value,
-                    priceStation: document.getElementById('editPriceStation').value,
-                    priceFlagship: document.getElementById('editPriceFlagship').value
-                };
+            const newData = {
+                district: document.getElementById('editDistrict').value.trim(),
+                name: document.getElementById('editName').value.trim(),
+                type: document.getElementById('editType').value,
+                small: document.getElementById('checkSmall').checked,
+                station: document.getElementById('checkStation').checked,
+                flagship: document.getElementById('checkFlagship').checked,
+                area: document.getElementById('editArea').value,
+                priceSmall: document.getElementById('editPriceSmall').value,
+                priceStation: document.getElementById('editPriceStation').value,
+                priceFlagship: document.getElementById('editPriceFlagship').value
+            };
 
-                // Update RAM
-                locations[index] = { ...locations[index], ...newData };
+            if (!newData.name || !newData.district) {
+                alert("Vui lòng nhập Tên và Quận/Huyện!");
+                return;
+            }
+
+            if (isEdit) {
+                const id = parseInt(idVal);
+                const index = locations.findIndex(l => l.id === id);
+                if (index !== -1) {
+                    locations[index] = { ...locations[index], ...newData };
+                }
+            } else {
+                // Generate new ID (max + 1)
+                const maxId = locations.length > 0 ? Math.max(...locations.map(l => l.id)) : 0;
+                locations.push({ id: maxId + 1, ...newData });
+            }
+
+            // Save Local
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+            
+            // Sync to Cloud (Auto Sync)
+            if (document.getElementById('connectionText').textContent.includes('Online')) {
+                syncToCloud(true); // Silent sync
+            }
+            
+            closeEditModal();
+            populateFilters(); // Refresh filters in case new district added
+            filterAndRender();
+            showToast(isEdit ? "Đã cập nhật" : "Đã thêm mới", "success");
+        }
+
+        function deleteLocation(id) {
+            if(!confirm("Bạn có chắc chắn muốn XÓA địa điểm này?")) return;
+            
+            const index = locations.findIndex(l => l.id === id);
+            if (index !== -1) {
+                locations.splice(index, 1);
                 
-                // Backup local
+                // Save Local
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
                 
-                // Save to Cloud if online
+                // Sync to Cloud (Auto Sync)
                 if (document.getElementById('connectionText').textContent.includes('Online')) {
-                    setLoading(true, "Đang lưu lên Cloud...");
-                    try {
-                        const payload = { action: 'update', id: id, ...newData };
-                        await fetch(apiUrl, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'text/plain' },
-                            body: JSON.stringify(payload)
-                        });
-                        showToast("Đã lưu thay đổi", "success");
-                    } catch (e) {
-                        showToast("Lỗi lưu Cloud (đã lưu offline)", "warning");
-                    } finally {
-                        setLoading(false);
-                    }
-                } else {
-                    showToast("Đã lưu (Offline)", "info");
+                    syncToCloud(true); // Silent sync
                 }
                 
-                closeEditModal();
+                populateFilters();
                 filterAndRender();
+                showToast("Đã xóa địa điểm", "warning");
             }
         }
 
@@ -620,6 +714,17 @@
             } else {
                 el.classList.add('hidden');
             }
+        }
+
+        function removeVietnameseTones(str) {
+            str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
+            str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
+            str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
+            str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o"); 
+            str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u"); 
+            str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y"); 
+            str = str.replace(/đ/g,"d");
+            return str;
         }
 
         function levenshtein(a, b) {
@@ -638,17 +743,6 @@
                 }
             }
             return matrix[b.length][a.length];
-        }
-
-        function removeVietnameseTones(str) {
-            str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a"); 
-            str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e"); 
-            str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i"); 
-            str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o"); 
-            str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u"); 
-            str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y"); 
-            str = str.replace(/đ/g,"d");
-            return str;
         }
 
         // --- Map Functions ---
@@ -702,13 +796,16 @@
                 pricesHtml = `<div class="price-info">${rows}</div>`;
             }
 
-            const editButton = isAdmin 
-                ? `<button onclick="openEditModal(${item.id})" class="absolute top-2 right-2 w-8 h-8 bg-white/90 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-full shadow-sm flex items-center justify-center transition-all z-10" title="Chỉnh sửa"><i class="fas fa-pen text-xs"></i></button>` 
+            const adminControls = isAdmin 
+                ? `<div class="absolute top-2 right-2 flex gap-1 z-10">
+                        <button onclick="openEditModal(${item.id})" class="w-7 h-7 bg-white/90 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-full shadow-sm flex items-center justify-center transition-all" title="Chỉnh sửa"><i class="fas fa-pen text-xs"></i></button>
+                        <button onclick="deleteLocation(${item.id})" class="w-7 h-7 bg-white/90 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-full shadow-sm flex items-center justify-center transition-all" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                   </div>` 
                 : '';
 
             return `
                 <div class="card bg-white p-4 rounded-xl shadow-sm relative group flex flex-col h-full">
-                    ${editButton}
+                    ${adminControls}
                     <div class="flex-grow cursor-pointer" onclick="openMap('${item.name.replace(/'/g, "\\'")}', '${item.district}')">
                         <div class="flex justify-between items-start mb-1">
                             <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider border border-slate-100 px-1 rounded">${item.district}</span>
