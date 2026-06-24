@@ -1,150 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base target="_top">
+  <meta charset="UTF-8"> <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #f5f5f5; }
-    .box { max-width: 520px; margin: auto; background: white; padding: 16px; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    h2 { margin-top: 0; text-align: center; }
-    #reader { width: 100%; margin: 12px 0; }
-    input { width: 100%; box-sizing: border-box; padding: 13px; font-size: 18px; border-radius: 10px; border: 1px solid #ccc; margin-top: 12px; text-transform: uppercase; }
-    button { width: 100%; padding: 14px; margin-top: 10px; font-size: 17px; border: 0; border-radius: 10px; background: #176bff; color: white; font-weight: bold; cursor: pointer; }
-    .secondary { background: #555; }
-    .result { padding: 14px; border-radius: 12px; margin-top: 12px; font-size: 17px; line-height: 1.5; white-space: pre-line; word-wrap: break-word;}
-    .ok { background: #e8f7ec; border: 1px solid #2eaf56; color: #176b32; }
-    .warn { background: #fff7df; border: 1px solid #e0a800; color: #7a5600; }
-    .bad { background: #fdecec; border: 1px solid #e04848; color: #9d1c1c; }
-    .loading { background: #eaf2ff; border: 1px solid #4388e8; color: #174b91; }
-    .small { font-size: 13px; color: #666; margin-top: 10px; text-align: center; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f5f5f5;
+    }
+
+    .box {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    #reader {
+      width: 100%;
+      margin: 12px 0;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 13px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 12px;
+      text-transform: uppercase;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 17px;
+      border: 0;
+      border-radius: 10px;
+      background: #176bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .secondary {
+      background: #555;
+    }
+
+    .result {
+      padding: 14px;
+      border-radius: 12px;
+      margin-top: 12px;
+      font-size: 17px;
+      line-height: 1.5;
+      white-space: pre-line;
+      word-wrap: break-word;
+    }
+
+    .ok {
+      background: #e8f7ec;
+      border: 1px solid #2eaf56;
+      color: #176b32;
+    }
+
+    .warn {
+      background: #fff7df;
+      border: 1px solid #e0a800;
+      color: #7a5600;
+    }
+
+    .bad {
+      background: #fdecec;
+      border: 1px solid #e04848;
+      color: #9d1c1c;
+    }
+
+    .loading {
+      background: #eaf2ff;
+      border: 1px solid #4388e8;
+      color: #174b91;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #666;
+      margin-top: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 
 <body>
   <div class="box">
     <h2>Quét mã ưu đãi</h2>
-    
+
     <div id="reader"></div>
 
     <button onclick="requestCameraAndStart()" id="btnStart">
       Bật / Xin quyền Camera
     </button>
+
     <button class="secondary" onclick="stopScan()">
       Dừng Camera
     </button>
 
     <input id="manualCode" placeholder="HOẶC NHẬP MÃ TAY (VD: BNE87E4P)">
-    <button onclick="checkManual()">Kiểm tra mã</button>
 
-    <div id="result" class="result loading">
-      Đang chuẩn bị máy quét...
-    </div>
-
-    <div class="small">
-      Nên mở bằng Safari/Chrome. KHÔNG mở trong Zalo, Facebook, Messenger.
-    </div>
-  </div>
-
-  <script>
-    let scanner = null;
-    let isChecking = false;
-    let lastCode = '';
-    let lastTime = 0;
-
-   
-
-    function setResult(type, text) {
-      const el = document.getElementById('result');
-      el.className = 'result ' + type;
-      el.innerText = text;
-    }
-
-    async function requestCameraAndStart() {
-      setResult('loading', 'Đang kết nối camera...');
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setResult('bad', 'Trình duyệt không hỗ trợ hoặc đang mở trong Zalo/Messenger. Hãy copy link ra Safari/Chrome.');
-        return;
-      }
-
-      try {
-        // Test xin quyền trước
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        stream.getTracks().forEach(track => track.stop()); // Tắt stream test đi
-        
-        // Bắt đầu quét
-        startScan();
-      } catch (err) {
-        let msg = 'Không bật được camera.\n\n';
-        msg += 'Bạn đang chặn camera hoặc mở sai trình duyệt. Hãy thoát ra màn hình chính, mở ứng dụng Chrome/Safari và dán link vào.\n\n';
-        msg += 'Lỗi chi tiết: ' + err.name;
-        setResult('bad', msg);
-      }
-    }
-
-    function startScan() {
-      if (scanner) return;
-
-      scanner = new Html5Qrcode('reader');
-      scanner.start(
-        { facingMode: 'environment' },
-        { fps: 15, qrbox: { width: 250, height: 250 } }, // Tăng FPS lên 15 cho nhạy
-        function(decodedText) {
-          const now = Date.now();
-          if (decodedText === lastCode && now - lastTime < 3000) return; // Chống quét trùng liên tục
-          
-          lastCode = decodedText;
-          lastTime = now;
-          checkCode(decodedText); // Gọi hàm check
-        },
-        function(errorMessage) {}
-      ).then(() => {
-        setResult('ok', 'Camera đã bật. Đưa QR vào khung để quét.');
-        document.getElementById('btnStart').style.display = 'none'; // Ẩn nút bật đi cho gọn
-      }).catch(err => {
-        scanner = null;
-        setResult('bad', 'Không mở được khung quét: ' + err);
-      });
-    }
-
-    function stopScan() {
-      if (!scanner) return;
-      scanner.stop().then(() => {
-        scanner.clear();
-        scanner = null;
-        setResult('loading', 'Đã dừng camera.');
-        document.getElementById('btnStart').style.display = 'block'; // Hiện lại nút bật
-      });
-    }
-
-    function checkManual() {
-      const code = document.getElementById('manualCode').value.trim();
-      if (!code) { setResult('bad', 'Bạn chưa nhập mã.'); return; }
-      checkCode(code);
-    }
-
-    function checkCode(raw) {
-      if (isChecking) return;
-      isChecking = true;
-      setResult('loading', 'Đang kiểm tra mã trên hệ thống...');
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          isChecking = false;
-          if (res.exists) {
-            const text = res.message + '\n\nTên: ' + res.name + '\nMã: ' + res.code + '\nCột POS: ' + (res.posCode || 'Chưa nhập');
-            setResult(res.status === 'imported' ? 'ok' : 'warn', text);
-          } else {
-            setResult('bad', res.message + '\n\nMã quét được: ' + (res.code || raw));
-          }
-        })
-        .withFailureHandler(function(err) {
-          isChecking = false;
-          setResult('bad', 'Lỗi mạng hoặc máy chủ:\n' + err.message);
-        })
-        .checkCode(raw);
-    }
-  </script>
-</body>
-</html>
+    <button onclick="checkManual()">
